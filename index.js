@@ -10,7 +10,22 @@ app.use(express.json());
 
 // GET ALL BOOKS FROM SERVER
 app.get("/books", (req, res) => {
-  res.json(library);
+  const { title, author } = req.query;
+  let filteredBooks = library;
+
+  if (title) {
+    filteredBooks = filteredBooks.filter((book) =>
+      book.title.toLowerCase().includes(title.toLowerCase())
+    );
+  }
+
+  if (author) {
+    filteredBooks = filteredBooks.filter((book) =>
+      book.author.toLowerCase().includes(author.toLowerCase())
+    );
+  }
+
+  res.json(filteredBooks);
 });
 
 // GET A BOOK WITH ID
