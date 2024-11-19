@@ -32,22 +32,27 @@ app.get("/books/:id", (req, res) => {
 app.post("/books", (req, res) => {
   const body = req.body;
 
-  if (!body) {
-    return res.status(400).json({ message: "The body is missing." });
+  if (
+    !body ||
+    !body.title ||
+    !body.author ||
+    !body.yearPublished ||
+    !body.genre
+  ) {
+    return res
+      .status(400)
+      .json({ message: "The body is missing or incomplete." });
   }
 
-  const title = body.title;
-  const author = body.author;
-  const yearPublished = body.yearPublished;
-  const genre = body.genre;
+  const { title, author, yearPublished, genre } = body;
   const newId = library.length + 1;
 
   const newBook = {
     id: newId,
-    title: title,
-    author: author,
-    yearPublished: Number(yearPublished),
-    genre: genre,
+    title,
+    author,
+    yearPublished,
+    genre,
   };
 
   library.push(newBook);
@@ -57,29 +62,23 @@ app.post("/books", (req, res) => {
 // PUT/UPDATE A EXCISTING BOOK
 app.put("/books/:id", (req, res) => {
   const { id } = req.params;
-  const body = req.body;
-
-  const { title } = body;
-  const { author } = body;
-  const { yearPublished } = body;
-  const { genre } = body;
+  const { title, author, yearPublished, genre } = req.body;
 
   if (!title && !author && !yearPublished && !genre) {
     return res.status(400).json({ message: "The body is missing" });
   }
 
-  const book = library.find((book) => book.id === id);
-
+  const book = library.find((book) => book.id === Number(id));
   if (!book) {
     return res
       .status(404)
       .json({ message: "The book with that id was not found." });
   }
 
-  book.title = title;
-  book.author = author;
-  book.yearPublished = Number(yearPublished);
-  book.genre = genre;
+  if (title) book.title = title;
+  if (author) book.author = author;
+  if (yearPublished) book.yearPublished = yearPublished;
+  if (genre) book.genre = genre;
 
   return res.json(book);
 });
@@ -88,7 +87,7 @@ app.put("/books/:id", (req, res) => {
 app.delete("/books/:id", (req, res) => {
   const { id } = req.params;
 
-  const book = library.find((book) => book.id === id);
+  const book = library.find((book) => book.id === +id);
 
   if (!book) {
     return res
@@ -96,7 +95,7 @@ app.delete("/books/:id", (req, res) => {
       .json({ message: "The bokk with that id was not found" });
   }
 
-  library = library.filter((book) => book.id != id);
+  library = library.filter((book) => book.id != +id);
 
   return res.json({ message: "The book was removed successfully" });
 });
