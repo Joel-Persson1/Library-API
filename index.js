@@ -1,6 +1,6 @@
 const express = require("express");
 
-let { library } = require("./server.js");
+let { library, authors } = require("./server.js");
 
 const app = express();
 
@@ -8,7 +8,7 @@ app.use(express.json());
 
 // **** ENDPOINTS **** //
 
-// GET ALL BOOKS FROM SERVER
+// GET ALL BOOKS FROM SERVER OR SEARCH FOR AUTHOR/TITLE
 app.get("/books", (req, res) => {
   const { title, author } = req.query;
   let filteredBooks = library;
@@ -25,13 +25,12 @@ app.get("/books", (req, res) => {
     );
   }
 
-  res.json(filteredBooks);
+  return res.json(filteredBooks);
 });
 
-// GET A BOOK WITH ID
+// GET A BOOK WITH ID AND AUTHOR OBJECT
 app.get("/books/:id", (req, res) => {
   const { id } = req.params;
-
   const book = library.find((book) => book.id === +id);
 
   if (!book) {
@@ -83,7 +82,7 @@ app.put("/books/:id", (req, res) => {
     return res.status(400).json({ message: "The body is missing" });
   }
 
-  const book = library.find((book) => book.id === Number(id));
+  const book = library.find((book) => book.id === +id);
   if (!book) {
     return res
       .status(404)
