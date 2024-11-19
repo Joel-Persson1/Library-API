@@ -29,6 +29,32 @@ app.get("/books/:id", (req, res) => {
   return res.json(book);
 });
 
+// POST A NEW BOOK
+app.post("/books", (req, res) => {
+  const body = req.body;
+
+  if (!body) {
+    return res.status(400).json({ message: "The body is missing." });
+  }
+
+  const title = body.title;
+  const author = body.author;
+  const yearPublished = body.yearPublished;
+  const genre = body.genre;
+  const newId = library.length + 1;
+
+  const newBook = {
+    id: newId.toString(),
+    title: title,
+    author: author,
+    yearPublished: yearPublished,
+    genre: genre,
+  };
+
+  library.push(newBook);
+  return res.status(201).json({ newBook });
+});
+
 // **** **** //
 
 app.listen(3000, () => {
