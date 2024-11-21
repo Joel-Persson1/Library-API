@@ -4,62 +4,34 @@ const db = new Database("library.db");
 function findBooks(req, res) {
   const { title, author } = req.query;
 
-  if (title && author) {
-    const getTitleAuthorQuery = `
-    SELECT * FROM books
-    WHERE title = ?
-    AND author = ?
-    `;
+  // Base query and parameters
+  let query = "SELECT * FROM books WHERE 1=1";
+  const params = [];
 
-    const stmt = db.prepare(getTitleAuthorQuery);
-    const post = stmt.get(title, author);
-
-    if (post) {
-      return res.json(post);
-    } else {
-      return res.status(404).json({ message: "The book does not exist" });
-    }
-  }
-
+  // Add filters dynamically
   if (title) {
-    const getTitleQuery = `
-    SELECT * FROM books
-    WHERE title = ?
-    `;
-
-    const stmt = db.prepare(getTitleQuery);
-    const post = stmt.get(title);
-
-    if (post) {
-      return res.json(post);
-    } else {
-      return res.status(404).json({ message: "The book does not exist" });
-    }
+    query += " AND title = ?";
+    params.push(title);
   }
-
   if (author) {
-    const getAuthorQuery = `
-    SELECT * FROM books
-    WHERE author = ?
-    `;
-
-    const stmt = db.prepare(getAuthorQuery);
-    const post = stmt.get(author);
-
-    if (post) {
-      return res.json(post);
-    } else {
-      return res.status(404).json({ message: "The book does not exist" });
-    }
+    query += " AND author = ?";
+    params.push(author);
   }
 
-  const getAllBooksQuery = `
-  SELECT * FROM books
-  `;
-  const stmt = db.prepare(getAllBooksQuery);
-  const post = stmt.all();
+  try {
+    // Prepare and execute query
+    const stmt = db.prepare(query);
+    const results = stmt.all(...params);
 
-  return res.json(post);
+    if (results.length > 0) {
+      return res.json(results);
+    } else {
+      return notFound(res);
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
 }
 
 function getBookById(req, res) {
@@ -77,29 +49,40 @@ function getBookById(req, res) {
     return res.status(200).json(post);
   }
 
-  return res.status(404).json({ message: "The book was not found." });
+  return notFound(res);
 }
 
 function postBook(req, res) {
-  const body = req.body;
+  const { title, author, yearPublished, genre } = req.body;
 
-  if (!body.title || !body.author || !body.yearPublished || !body.genre) {
+  if (!title || !author || !yearPublished || !genre) {
     return res
       .status(400)
-      .json({ message: "The body is missing och incomplete." });
+      .json({ message: "The body is missing or incomplete." });
   }
 
-  const insertQuery = `
-  INSERT INTO books (title, author, yearPublished, genre)
-  VALUES (?, ?, ?, ?)
-  `;
+  try {
+    const insertQuery = `
+      INSERT INTO books (title, author, yearPublished, genre)
+      VALUES (?, ?, ?, ?)
+    `;
 
-  const stmt = db.prepare(insertQuery);
-  stmt.run(body.title, body.author, body.yearPublished, body.genre);
+    const stmt = db.prepare(insertQuery);
 
-  return res
-    .status(201)
-    .json({ message: "The new post was succesfully created." });
+    const result = stmt.run(title, author, yearPublished, genre);
+
+    if (result.changes > 0) {
+      return res.status(201).json({
+        message: "The new book was successfully created.",
+        bookId: result.lastInsertRowid,
+      });
+    } else {
+      return res.status(500).json({ message: "Failed to create the book." });
+    }
+  } catch (error) {
+    console.error("Database error:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
 }
 
 function putBook(req, res) {
@@ -115,9 +98,7 @@ function putBook(req, res) {
   }
 
   if (!bookExists(id)) {
-    return res
-      .status(404)
-      .json({ message: "The book with that id was not found." });
+    return notFound(res);
   }
 
   const PutPostQuery = `
@@ -136,9 +117,7 @@ function deleteBook(req, res) {
   const { id } = req.params;
 
   if (!bookExists(id)) {
-    return res
-      .status(404)
-      .json({ message: "The book with that id was not found." });
+    return notFound(res);
   }
 
   const deleteBookQuery = `
@@ -162,6 +141,12 @@ function bookExists(id) {
   const post = stmt.get(id);
 
   return post ? true : false;
+}
+
+function notFound(res) {
+  return res
+    .status(404)
+    .json({ message: "The book with that id was not found." });
 }
 
 module.exports = { findBooks, getBookById, postBook, putBook, deleteBook };
